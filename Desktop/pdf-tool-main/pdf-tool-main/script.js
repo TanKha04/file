@@ -22,6 +22,7 @@ const fileInput = document.getElementById('fileInput');
 const fileList = document.getElementById('fileList');
 const mergeBtn = document.getElementById('mergeBtn');
 const splitBtn = document.getElementById('splitBtn');
+const bookletBtn = document.getElementById('bookletBtn');
 const previewBtn = document.getElementById('previewBtn');
 const clearBtn = document.getElementById('clearBtn');
 const uploadLabel = document.querySelector('.upload-label');
@@ -31,6 +32,15 @@ const closePreviewBtn = document.getElementById('closePreviewBtn');
 const downloadPreviewBtn = document.getElementById('downloadPreviewBtn');
 const previewContainer = document.getElementById('previewContainer');
 const outputFileName = document.getElementById('outputFileName');
+
+// Booklet elements
+const bookletModal = document.getElementById('bookletModal');
+const closeBookletModalBtn = document.querySelector('.close-booklet-modal');
+const closeBookletBtn = document.getElementById('closeBookletBtn');
+const createBookletBtn = document.getElementById('createBookletBtn');
+const bookletContainer = document.getElementById('bookletContainer');
+const bookletPages = document.getElementById('bookletPages');
+const bookletFileName = document.getElementById('bookletFileName');
 
 function initializeApp() {
     // Xử lý chọn file
@@ -67,6 +77,9 @@ function initializeApp() {
     // Xem trước
     previewBtn.addEventListener('click', handlePreview);
 
+    // Gộp thành sổ
+    bookletBtn.addEventListener('click', handleBooklet);
+
     // Đóng modal
     closeModalBtn.addEventListener('click', () => {
         previewModal.classList.remove('show');
@@ -84,6 +97,23 @@ function initializeApp() {
 
     // Tải về file đã chọn
     downloadPreviewBtn.addEventListener('click', handleDownloadPreview);
+
+    // Booklet modal events
+    closeBookletModalBtn.addEventListener('click', () => {
+        bookletModal.classList.remove('show');
+    });
+
+    closeBookletBtn.addEventListener('click', () => {
+        bookletModal.classList.remove('show');
+    });
+
+    bookletModal.addEventListener('click', (e) => {
+        if (e.target === bookletModal) {
+            bookletModal.classList.remove('show');
+        }
+    });
+
+    createBookletBtn.addEventListener('click', handleCreateBooklet);
 }
 
 
@@ -554,4 +584,289 @@ function downloadFile(pdfBytes, fileName) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// Booklet functionality
+let bookletSlots = {
+    front: null,
+    back: null,
+    content1: null,
+    content2: null
+};
+
+// Xử lý gộp thành sổ
+async function handleBooklet() {
+    if (files.length === 0) {
+        alert('Vui lòng chọn file PDF để tạo sổ!');
+        return;
+    }
+    
+    bookletBtn.disabled = true;
+    bookletBtn.textContent = 'Đang tải...';
+    
+    try {
+        await renderBookletPages();
+        bookletModal.classList.add('show');
+    } catch (error) {
+        alert('Lỗi khi tải trang: ' + error.message);
+    } finally {
+        bookletBtn.disabled = false;
+        bookletBtn.textContent = 'Gộp Thành Sổ';
+    }
+}
+
+// Render các trang cho booklet
+async function renderBookletPages() {
+    bookletPages.innerHTML = '';
+    
+    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        const fileData = files[fileIndex];
+        
+        const arrayBuffer = await fileData.file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 0.3 });
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+            
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'booklet-page';
+            pageDiv.draggable = true;
+            pageDiv.dataset.fileId = fileData.id;
+            pageDiv.dataset.pageNum = pageNum;
+            pageDiv.dataset.fileName = fileData.name;
+            
+            const pageInfo = document.createElement('div');
+            pageInfo.className = 'booklet-page-info';
+            pageInfo.textContent = `${fileData.name} - Trang ${pageNum}`;
+            
+            pageDiv.appendChild(canvas);
+            pageDiv.appendChild(pageInfo);
+            
+            // Thêm sự kiện kéo thả
+            pageDiv.addEventListener('dragstart', handleBookletPageDragStart);
+            pageDiv.addEventListener('dragend', handleBookletPageDragEnd);
+            
+            bookletPages.appendChild(pageDiv);
+        }
+    }
+    
+    // Thiết lập drop zones
+    setupBookletDropZones();
+}
+
+// Thiết lập các vùng thả cho booklet
+function setupBookletDropZones() {
+    const slots = document.querySelectorAll('.booklet-slot');
+    
+    slots.forEach(slot => {
+        slot.addEventListener('dragover', handleBookletSlotDragOver);
+        slot.addEventListener('drop', handleBookletSlotDrop);
+        slot.addEventListener('dragenter', handleBookletSlotDragEnter);
+        slot.addEventListener('dragleave', handleBookletSlotDragLeave);
+    });
+}
+
+let draggedBookletPage = null;
+
+function handleBookletPageDragStart(e) {
+    draggedBookletPage = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'copy';
+}
+
+function handleBookletPageDragEnd() {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.booklet-slot').forEach(slot => {
+        slot.classList.remove('drag-over');
+    });
+}
+
+function handleBookletSlotDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'copy';
+    return false;
+}
+
+function handleBookletSlotDragEnter() {
+    this.classList.add('drag-over');
+}
+
+function handleBookletSlotDragLeave() {
+    this.classList.remove('drag-over');
+}
+
+function handleBookletSlotDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    this.classList.remove('drag-over');
+    
+    if (draggedBookletPage) {
+        const slotType = this.dataset.type;
+        const fileId = parseFloat(draggedBookletPage.dataset.fileId);
+        const pageNum = parseInt(draggedBookletPage.dataset.pageNum);
+        const fileName = draggedBookletPage.dataset.fileName;
+        
+        // Lưu thông tin trang vào slot
+        bookletSlots[slotType] = {
+            fileId: fileId,
+            pageNum: pageNum,
+            fileName: fileName,
+            canvas: draggedBookletPage.querySelector('canvas').cloneNode(true)
+        };
+        
+        // Hiển thị trang trong slot
+        displayPageInSlot(this, bookletSlots[slotType]);
+    }
+    
+    return false;
+}
+
+function displayPageInSlot(slot, pageData) {
+    slot.innerHTML = '';
+    slot.classList.add('filled');
+    
+    const content = document.createElement('div');
+    content.className = 'booklet-slot-content';
+    
+    const canvas = pageData.canvas.cloneNode(true);
+    const info = document.createElement('div');
+    info.className = 'booklet-slot-info';
+    info.textContent = `${pageData.fileName} - Trang ${pageData.pageNum}`;
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-from-slot';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', () => {
+        removeFromSlot(slot);
+    });
+    
+    content.appendChild(canvas);
+    content.appendChild(info);
+    slot.appendChild(content);
+    slot.appendChild(removeBtn);
+}
+
+function removeFromSlot(slot) {
+    const slotType = slot.dataset.type;
+    bookletSlots[slotType] = null;
+    
+    slot.classList.remove('filled');
+    slot.innerHTML = '<div class="slot-placeholder">Kéo trang vào đây</div>';
+}
+
+// Tạo sổ
+async function handleCreateBooklet() {
+    // Kiểm tra đã chọn đủ 4 trang chưa
+    const requiredSlots = ['front', 'back', 'content1', 'content2'];
+    const missingSlots = requiredSlots.filter(slot => !bookletSlots[slot]);
+    
+    if (missingSlots.length > 0) {
+        alert('Vui lòng chọn đủ 4 trang cho sổ!');
+        return;
+    }
+    
+    createBookletBtn.disabled = true;
+    createBookletBtn.textContent = 'Đang tạo...';
+    
+    try {
+        const bookletPdf = await PDFDocument.create();
+        
+        // Tạo trang 1: Trang đầu + Trang cuối (cạnh nhau)
+        await addBookletPage(bookletPdf, bookletSlots.front, bookletSlots.back);
+        
+        // Tạo trang 2: Nội dung 2 + Nội dung 1 (cạnh nhau, đảo ngược để khi gấp đúng thứ tự)
+        await addBookletPage(bookletPdf, bookletSlots.content2, bookletSlots.content1);
+        
+        const bookletPdfBytes = await bookletPdf.save();
+        
+        // Lấy tên file
+        let fileName = bookletFileName.value.trim();
+        if (!fileName) {
+            fileName = 'booklet';
+        }
+        fileName = fileName.replace(/\.pdf$/i, '');
+        
+        downloadFile(bookletPdfBytes, fileName + '.pdf');
+        
+        alert('Tạo sổ thành công! Hãy in 2 mặt và gấp đôi để có sổ hoàn chỉnh.');
+        bookletModal.classList.remove('show');
+        
+    } catch (error) {
+        alert('Lỗi khi tạo sổ: ' + error.message);
+    } finally {
+        createBookletBtn.disabled = false;
+        createBookletBtn.textContent = 'Tạo Sổ';
+    }
+}
+
+// Thêm trang booklet (2 trang cạnh nhau)
+async function addBookletPage(bookletPdf, leftPageData, rightPageData) {
+    // Lấy trang gốc để copy
+    const leftFile = files.find(f => f.id === leftPageData.fileId);
+    const rightFile = files.find(f => f.id === rightPageData.fileId);
+    
+    const leftArrayBuffer = await leftFile.file.arrayBuffer();
+    const rightArrayBuffer = await rightFile.file.arrayBuffer();
+    
+    const leftPdf = await PDFDocument.load(leftArrayBuffer);
+    const rightPdf = await PDFDocument.load(rightArrayBuffer);
+    
+    // Copy các trang
+    const [leftPage] = await bookletPdf.copyPages(leftPdf, [leftPageData.pageNum - 1]);
+    const [rightPage] = await bookletPdf.copyPages(rightPdf, [rightPageData.pageNum - 1]);
+    
+    // Tạo trang mới với kích thước A4 ngang (landscape)
+    const page = bookletPdf.addPage([842, 595]); // A4 landscape
+    
+    // Lấy kích thước trang gốc
+    const leftSize = leftPage.getSize();
+    const rightSize = rightPage.getSize();
+    
+    // Tính toán scale để fit vào nửa trang
+    const maxWidth = 421; // Nửa chiều rộng A4 landscape
+    const maxHeight = 595; // Chiều cao A4
+    
+    const leftScale = Math.min(maxWidth / leftSize.width, maxHeight / leftSize.height);
+    const rightScale = Math.min(maxWidth / rightSize.width, maxHeight / rightSize.height);
+    
+    // Tính toán vị trí để căn giữa
+    const leftWidth = leftSize.width * leftScale;
+    const leftHeight = leftSize.height * leftScale;
+    const rightWidth = rightSize.width * rightScale;
+    const rightHeight = rightSize.height * rightScale;
+    
+    const leftX = (maxWidth - leftWidth) / 2;
+    const leftY = (maxHeight - leftHeight) / 2;
+    const rightX = maxWidth + (maxWidth - rightWidth) / 2;
+    const rightY = (maxHeight - rightHeight) / 2;
+    
+    // Vẽ các trang
+    page.drawPage(leftPage, {
+        x: leftX,
+        y: leftY,
+        width: leftWidth,
+        height: leftHeight
+    });
+    
+    page.drawPage(rightPage, {
+        x: rightX,
+        y: rightY,
+        width: rightWidth,
+        height: rightHeight
+    });
 }

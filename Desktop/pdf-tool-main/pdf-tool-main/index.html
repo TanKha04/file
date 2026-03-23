@@ -48,6 +48,7 @@
         <div class="controls">
             <button id="mergeBtn" class="btn btn-primary">Gộp File</button>
             <button id="splitBtn" class="btn btn-secondary">Tách File</button>
+            <button id="bookletBtn" class="btn btn-success">Gộp Thành Sổ</button>
             <button id="previewBtn" class="btn btn-info">Xem Trước</button>
             <button id="clearBtn" class="btn btn-danger">Xóa Tất Cả</button>
         </div>
@@ -80,6 +81,61 @@
                 </div>
                 <button id="downloadPreviewBtn" class="btn btn-primary">Tải Về File Đã Chọn</button>
                 <button id="closePreviewBtn" class="btn btn-secondary">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal gộp thành sổ -->
+    <div id="bookletModal" class="modal">
+        <div class="modal-content booklet-modal">
+            <div class="modal-header">
+                <h2>Gộp Thành Sổ</h2>
+                <button class="close-booklet-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="booklet-instructions">
+                    <p><strong>Hướng dẫn:</strong> Chọn 4 trang để tạo sổ. Kết quả sẽ có 2 tờ giấy:</p>
+                    <ul>
+                        <li><strong>Tờ 1:</strong> Trang đầu + Trang cuối (in cùng 1 mặt)</li>
+                        <li><strong>Tờ 2:</strong> Nội dung 1 + Nội dung 2 (in cùng 1 mặt)</li>
+                    </ul>
+                </div>
+                <div id="bookletContainer" class="booklet-container">
+                    <div class="booklet-section">
+                        <h3>Trang Đầu</h3>
+                        <div id="frontPage" class="booklet-slot" data-type="front">
+                            <div class="slot-placeholder">Kéo trang vào đây</div>
+                        </div>
+                    </div>
+                    <div class="booklet-section">
+                        <h3>Trang Cuối</h3>
+                        <div id="backPage" class="booklet-slot" data-type="back">
+                            <div class="slot-placeholder">Kéo trang vào đây</div>
+                        </div>
+                    </div>
+                    <div class="booklet-section">
+                        <h3>Nội dung 1</h3>
+                        <div id="content1Page" class="booklet-slot" data-type="content1">
+                            <div class="slot-placeholder">Kéo trang vào đây</div>
+                        </div>
+                    </div>
+                    <div class="booklet-section">
+                        <h3>Nội dung 2</h3>
+                        <div id="content2Page" class="booklet-slot" data-type="content2">
+                            <div class="slot-placeholder">Kéa trang vào đây</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="bookletPages" class="booklet-pages"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="filename-input-group">
+                    <label for="bookletFileName">Tên sổ:</label>
+                    <input type="text" id="bookletFileName" value="booklet" placeholder="Nhập tên sổ">
+                    <span>.pdf</span>
+                </div>
+                <button id="createBookletBtn" class="btn btn-primary">Tạo Sổ</button>
+                <button id="closeBookletBtn" class="btn btn-secondary">Đóng</button>
             </div>
         </div>
     </div>
