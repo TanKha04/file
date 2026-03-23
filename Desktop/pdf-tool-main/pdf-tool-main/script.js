@@ -41,6 +41,8 @@ const createBookletBtn = document.getElementById('createBookletBtn');
 const bookletContainer = document.getElementById('bookletContainer');
 const bookletPages = document.getElementById('bookletPages');
 const bookletFileName = document.getElementById('bookletFileName');
+const autoArrangeBtn = document.getElementById('autoArrangeBtn');
+const clearAllSlotsBtn = document.getElementById('clearAllSlotsBtn');
 
 function initializeApp() {
     // Xử lý chọn file
@@ -114,6 +116,10 @@ function initializeApp() {
     });
 
     createBookletBtn.addEventListener('click', handleCreateBooklet);
+
+    // Auto arrange và clear slots
+    autoArrangeBtn.addEventListener('click', handleAutoArrange);
+    clearAllSlotsBtn.addEventListener('click', handleClearAllSlots);
 }
 
 
@@ -601,13 +607,28 @@ async function handleBooklet() {
         return;
     }
     
+    // Kiểm tra thư viện đã load chưa
+    if (typeof pdfjsLib === 'undefined') {
+        alert('Thư viện PDF.js chưa được tải. Vui lòng thử lại sau!');
+        return;
+    }
+    
     bookletBtn.disabled = true;
     bookletBtn.textContent = 'Đang tải...';
     
     try {
+        // Reset booklet slots
+        bookletSlots = {
+            front: null,
+            back: null,
+            content1: null,
+            content2: null
+        };
+        
         await renderBookletPages();
         bookletModal.classList.add('show');
     } catch (error) {
+        console.error('Lỗi khi tải trang:', error);
         alert('Lỗi khi tải trang: ' + error.message);
     } finally {
         bookletBtn.disabled = false;
@@ -619,50 +640,59 @@ async function handleBooklet() {
 async function renderBookletPages() {
     bookletPages.innerHTML = '';
     
-    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-        const fileData = files[fileIndex];
-        
-        const arrayBuffer = await fileData.file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            const page = await pdf.getPage(pageNum);
-            const viewport = page.getViewport({ scale: 0.3 });
+    try {
+        for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+            const fileData = files[fileIndex];
             
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+            const arrayBuffer = await fileData.file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             
-            await page.render({
-                canvasContext: context,
-                viewport: viewport
-            }).promise;
-            
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'booklet-page';
-            pageDiv.draggable = true;
-            pageDiv.dataset.fileId = fileData.id;
-            pageDiv.dataset.pageNum = pageNum;
-            pageDiv.dataset.fileName = fileData.name;
-            
-            const pageInfo = document.createElement('div');
-            pageInfo.className = 'booklet-page-info';
-            pageInfo.textContent = `${fileData.name} - Trang ${pageNum}`;
-            
-            pageDiv.appendChild(canvas);
-            pageDiv.appendChild(pageInfo);
-            
-            // Thêm sự kiện kéo thả
-            pageDiv.addEventListener('dragstart', handleBookletPageDragStart);
-            pageDiv.addEventListener('dragend', handleBookletPageDragEnd);
-            
-            bookletPages.appendChild(pageDiv);
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                try {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 0.3 });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'booklet-page';
+                    pageDiv.draggable = true;
+                    pageDiv.dataset.fileId = fileData.id;
+                    pageDiv.dataset.pageNum = pageNum;
+                    pageDiv.dataset.fileName = fileData.name;
+                    
+                    const pageInfo = document.createElement('div');
+                    pageInfo.className = 'booklet-page-info';
+                    pageInfo.textContent = `${fileData.name} - Trang ${pageNum}`;
+                    
+                    pageDiv.appendChild(canvas);
+                    pageDiv.appendChild(pageInfo);
+                    
+                    // Thêm sự kiện kéo thả
+                    pageDiv.addEventListener('dragstart', handleBookletPageDragStart);
+                    pageDiv.addEventListener('dragend', handleBookletPageDragEnd);
+                    
+                    bookletPages.appendChild(pageDiv);
+                } catch (pageError) {
+                    console.error(`Lỗi khi render trang ${pageNum}:`, pageError);
+                }
+            }
         }
+        
+        // Thiết lập drop zones
+        setupBookletDropZones();
+    } catch (error) {
+        console.error('Lỗi khi render booklet pages:', error);
+        throw error;
     }
-    
-    // Thiết lập drop zones
-    setupBookletDropZones();
 }
 
 // Thiết lập các vùng thả cho booklet
@@ -683,6 +713,7 @@ function handleBookletPageDragStart(e) {
     draggedBookletPage = this;
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', ''); // Thêm dữ liệu để tránh lỗi
 }
 
 function handleBookletPageDragEnd() {
@@ -716,49 +747,96 @@ function handleBookletSlotDrop(e) {
     this.classList.remove('drag-over');
     
     if (draggedBookletPage) {
-        const slotType = this.dataset.type;
-        const fileId = parseFloat(draggedBookletPage.dataset.fileId);
-        const pageNum = parseInt(draggedBookletPage.dataset.pageNum);
-        const fileName = draggedBookletPage.dataset.fileName;
-        
-        // Lưu thông tin trang vào slot
-        bookletSlots[slotType] = {
-            fileId: fileId,
-            pageNum: pageNum,
-            fileName: fileName,
-            canvas: draggedBookletPage.querySelector('canvas').cloneNode(true)
-        };
-        
-        // Hiển thị trang trong slot
-        displayPageInSlot(this, bookletSlots[slotType]);
+        try {
+            const slotType = this.dataset.type;
+            const fileId = parseFloat(draggedBookletPage.dataset.fileId);
+            const pageNum = parseInt(draggedBookletPage.dataset.pageNum);
+            const fileName = draggedBookletPage.dataset.fileName;
+            
+            // Lấy canvas gốc
+            const originalCanvas = draggedBookletPage.querySelector('canvas');
+            
+            if (!originalCanvas) {
+                console.error('Không tìm thấy canvas trong trang được kéo');
+                return false;
+            }
+            
+            // Lưu thông tin trang vào slot
+            bookletSlots[slotType] = {
+                fileId: fileId,
+                pageNum: pageNum,
+                fileName: fileName,
+                canvas: originalCanvas
+            };
+            
+            // Hiển thị trang trong slot
+            displayPageInSlot(this, bookletSlots[slotType]);
+        } catch (error) {
+            console.error('Lỗi khi thả trang vào slot:', error);
+            alert('Có lỗi xảy ra khi thêm trang vào slot!');
+        }
     }
     
     return false;
 }
 
 function displayPageInSlot(slot, pageData) {
+    if (!slot || !pageData || !pageData.canvas) {
+        console.error('Invalid slot or pageData:', slot, pageData);
+        return;
+    }
+    
     slot.innerHTML = '';
     slot.classList.add('filled');
     
     const content = document.createElement('div');
     content.className = 'booklet-slot-content';
     
-    const canvas = pageData.canvas.cloneNode(true);
-    const info = document.createElement('div');
-    info.className = 'booklet-slot-info';
-    info.textContent = `${pageData.fileName} - Trang ${pageData.pageNum}`;
-    
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-from-slot';
-    removeBtn.textContent = '×';
-    removeBtn.addEventListener('click', () => {
-        removeFromSlot(slot);
-    });
-    
-    content.appendChild(canvas);
-    content.appendChild(info);
-    slot.appendChild(content);
-    slot.appendChild(removeBtn);
+    try {
+        // Tạo canvas mới thay vì clone để tránh lỗi
+        const canvas = document.createElement('canvas');
+        const originalCanvas = pageData.canvas;
+        
+        if (!originalCanvas || !originalCanvas.getContext) {
+            console.error('Invalid canvas:', originalCanvas);
+            return;
+        }
+        
+        canvas.width = originalCanvas.width;
+        canvas.height = originalCanvas.height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(originalCanvas, 0, 0);
+        
+        const info = document.createElement('div');
+        info.className = 'booklet-slot-info';
+        info.textContent = `${pageData.fileName} - Trang ${pageData.pageNum}`;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-from-slot';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => {
+            removeFromSlot(slot);
+        });
+        
+        const swapBtn = document.createElement('button');
+        swapBtn.className = 'booklet-slot-swap';
+        swapBtn.textContent = '⇄';
+        swapBtn.title = 'Hoán đổi với slot khác';
+        swapBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleSwapSlot(slot.dataset.type);
+        });
+        
+        content.appendChild(canvas);
+        content.appendChild(info);
+        slot.appendChild(content);
+        slot.appendChild(removeBtn);
+        slot.appendChild(swapBtn);
+    } catch (error) {
+        console.error('Lỗi khi hiển thị trang trong slot:', error);
+        slot.innerHTML = '<div class="slot-placeholder">Lỗi hiển thị trang</div>';
+    }
 }
 
 function removeFromSlot(slot) {
@@ -869,4 +947,121 @@ async function addBookletPage(bookletPdf, leftPageData, rightPageData) {
         width: rightWidth,
         height: rightHeight
     });
+}
+// Sắp xếp tự động
+function handleAutoArrange() {
+    const allPages = document.querySelectorAll('.booklet-page');
+    
+    if (allPages.length < 4) {
+        alert('Cần ít nhất 4 trang để sắp xếp tự động!');
+        return;
+    }
+    
+    try {
+        // Xóa tất cả slot hiện tại
+        handleClearAllSlots();
+        
+        // Sắp xếp theo thứ tự: trang 1 -> đầu, trang 2 -> nội dung 1, trang 3 -> nội dung 2, trang 4 -> cuối
+        const slotOrder = ['front', 'content1', 'content2', 'back'];
+        
+        for (let i = 0; i < Math.min(4, allPages.length); i++) {
+            const page = allPages[i];
+            const slotType = slotOrder[i];
+            const slot = document.querySelector(`[data-type="${slotType}"]`);
+            
+            if (!page || !slot) continue;
+            
+            const fileId = parseFloat(page.dataset.fileId);
+            const pageNum = parseInt(page.dataset.pageNum);
+            const fileName = page.dataset.fileName;
+            const canvas = page.querySelector('canvas');
+            
+            if (!canvas) {
+                console.error('Không tìm thấy canvas cho trang:', page);
+                continue;
+            }
+            
+            bookletSlots[slotType] = {
+                fileId: fileId,
+                pageNum: pageNum,
+                fileName: fileName,
+                canvas: canvas
+            };
+            
+            displayPageInSlot(slot, bookletSlots[slotType]);
+        }
+        
+        alert('Đã sắp xếp tự động 4 trang đầu tiên!');
+    } catch (error) {
+        console.error('Lỗi khi sắp xếp tự động:', error);
+        alert('Có lỗi xảy ra khi sắp xếp tự động!');
+    }
+}
+
+// Xóa tất cả slots
+function handleClearAllSlots() {
+    const slots = document.querySelectorAll('.booklet-slot');
+    slots.forEach(slot => {
+        removeFromSlot(slot);
+    });
+}
+
+// Thêm nút swap cho các slot
+function addSwapButton(slot, slotType) {
+    const swapBtn = document.createElement('button');
+    swapBtn.className = 'booklet-slot-swap';
+    swapBtn.textContent = '⇄';
+    swapBtn.title = 'Hoán đổi với slot khác';
+    swapBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleSwapSlot(slotType);
+    });
+    
+    slot.appendChild(swapBtn);
+}
+
+// Hoán đổi slot
+function handleSwapSlot(currentSlotType) {
+    const otherSlots = Object.keys(bookletSlots).filter(type => 
+        type !== currentSlotType && bookletSlots[type] !== null
+    );
+    
+    if (otherSlots.length === 0) {
+        alert('Không có slot nào khác để hoán đổi!');
+        return;
+    }
+    
+    // Tạo menu chọn slot để hoán đổi
+    const slotNames = {
+        front: 'Trang Đầu',
+        back: 'Trang Cuối', 
+        content1: 'Nội dung 1',
+        content2: 'Nội dung 2'
+    };
+    
+    let message = 'Chọn slot để hoán đổi:\n';
+    otherSlots.forEach((slot, index) => {
+        message += `${index + 1}. ${slotNames[slot]}\n`;
+    });
+    
+    const choice = prompt(message + '\nNhập số thứ tự:');
+    const choiceIndex = parseInt(choice) - 1;
+    
+    if (choiceIndex >= 0 && choiceIndex < otherSlots.length) {
+        const targetSlotType = otherSlots[choiceIndex];
+        
+        // Hoán đổi dữ liệu
+        const temp = bookletSlots[currentSlotType];
+        bookletSlots[currentSlotType] = bookletSlots[targetSlotType];
+        bookletSlots[targetSlotType] = temp;
+        
+        // Cập nhật hiển thị
+        const currentSlot = document.querySelector(`[data-type="${currentSlotType}"]`);
+        const targetSlot = document.querySelector(`[data-type="${targetSlotType}"]`);
+        
+        displayPageInSlot(currentSlot, bookletSlots[currentSlotType]);
+        displayPageInSlot(targetSlot, bookletSlots[targetSlotType]);
+        
+        alert('Hoán đổi thành công!');
+    }
 }
