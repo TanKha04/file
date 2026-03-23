@@ -6,17 +6,26 @@ let isBookletMode = false;
 
 // Đợi thư viện load xong
 window.addEventListener('DOMContentLoaded', () => {
-    // Kiểm tra và load PDFLib
-    if (typeof PDFLib !== 'undefined') {
-        PDFDocument = PDFLib.PDFDocument;
-    }
-    
-    // Cấu hình pdf.js worker
-    if (typeof pdfjsLib !== 'undefined') {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-    
-    initializeApp();
+    // Đợi một chút để đảm bảo thư viện được load
+    setTimeout(() => {
+        // Kiểm tra và load PDFLib
+        if (typeof PDFLib !== 'undefined') {
+            PDFDocument = PDFLib.PDFDocument;
+            console.log('PDF-lib loaded successfully');
+        } else {
+            console.error('PDF-lib not loaded');
+        }
+        
+        // Cấu hình pdf.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            console.log('PDF.js loaded successfully');
+        } else {
+            console.error('PDF.js not loaded');
+        }
+        
+        initializeApp();
+    }, 100);
 });
 
 const fileInput = document.getElementById('fileInput');
@@ -233,6 +242,12 @@ async function handleMerge() {
         return;
     }
     
+    // Kiểm tra thư viện
+    if (!PDFDocument) {
+        alert('Thư viện PDF chưa được tải. Vui lòng tải lại trang!');
+        return;
+    }
+    
     // Hỏi tên file
     let fileName = prompt('Nhập tên file (không cần .pdf):', 'merged_file');
     if (fileName === null) return; // Người dùng hủy
@@ -247,20 +262,29 @@ async function handleMerge() {
     mergeBtn.textContent = 'Đang xử lý...';
     
     try {
+        console.log('Starting merge process...');
         const mergedPdf = await PDFDocument.create();
         
-        for (const fileData of files) {
+        for (let i = 0; i < files.length; i++) {
+            const fileData = files[i];
+            console.log(`Processing file ${i + 1}: ${fileData.name}`);
+            
             const arrayBuffer = await fileData.file.arrayBuffer();
             const pdf = await PDFDocument.load(arrayBuffer);
+            const pageCount = pdf.getPageCount();
+            console.log(`File has ${pageCount} pages`);
+            
             const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             copiedPages.forEach(page => mergedPdf.addPage(page));
         }
         
+        console.log('Saving merged PDF...');
         const mergedPdfBytes = await mergedPdf.save();
         downloadFile(mergedPdfBytes, fileName + '.pdf');
         
         alert('Gộp file thành công!');
     } catch (error) {
+        console.error('Merge error:', error);
         alert('Lỗi khi gộp file: ' + error.message);
     } finally {
         mergeBtn.disabled = false;
