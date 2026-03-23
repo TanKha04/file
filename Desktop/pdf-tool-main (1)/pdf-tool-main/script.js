@@ -67,7 +67,12 @@ function initializeApp() {
     });
 
     // Gộp file
-    mergeBtn.addEventListener('click', handleMerge);
+    mergeBtn.addEventListener('click', () => {
+        console.log('Merge button clicked');
+        console.log('Files count:', files.length);
+        console.log('PDFDocument available:', !!PDFDocument);
+        handleMerge();
+    });
 
     // Gộp thành sổ
     bookletBtn.addEventListener('click', handleBookletMerge);
@@ -108,7 +113,9 @@ function handleFileSelect(e) {
 }
 
 function handleFiles(newFiles) {
+    console.log('Adding files:', newFiles.length);
     newFiles.forEach(file => {
+        console.log('File:', file.name, file.type);
         files.push({
             id: Date.now() + Math.random(),
             file: file,
@@ -117,6 +124,7 @@ function handleFiles(newFiles) {
             role: 'content' // Default role
         });
     });
+    console.log('Total files now:', files.length);
     renderFileList();
 }
 
@@ -298,9 +306,154 @@ async function handleBookletMerge() {
         return;
     }
     
-    isBookletMode = true;
-    renderFileList(); // Cập nhật danh sách để hiển thị role selector (nếu còn dùng)
-    handlePreview();
+    // Kiểm tra thư viện
+    if (!PDFDocument) {
+        alert('Thư viện PDF chưa được tải. Vui lòng tải lại trang!');
+        return;
+    }
+    
+    // Hỏi tên file
+    let fileName = prompt('Nhập tên file sổ (không cần .pdf):', 'booklet_file');
+    if (fileName === null) return; // Người dùng hủy
+    
+    fileName = fileName.trim();
+    if (!fileName) {
+        fileName = 'booklet_file';
+    }
+    fileName = fileName.replace(/\.pdf$/i, '');
+    
+    bookletBtn.disabled = true;
+    bookletBtn.textContent = 'Đang xử lý...';
+    
+    try {
+        console.log('Starting booklet creation...');
+        const bookletPdf = await PDFDocument.create();
+        
+        // Thu thập tất cả các trang từ các file
+        const allPages = [];
+        
+        for (let i = 0; i < files.length; i++) {
+            const fileData = files[i];
+            console.log(`Processing file ${i + 1}: ${fileData.name}`);
+            
+            const arrayBuffer = await fileData.file.arrayBuffer();
+            const pdf = await PDFDocument.load(arrayBuffer);
+            const pageCount = pdf.getPageCount();
+            
+            for (let pageNum = 0; pageNum < pageCount; pageNum++) {
+                const [copiedPage] = await bookletPdf.copyPages(pdf, [pageNum]);
+                allPages.push(copiedPage);
+            }
+        }
+        
+        console.log(`Total pages collected: ${allPages.length}`);
+        
+        // Tính toán số trang cần thiết (phải chia hết cho 4 để tạo sổ)
+        const totalPages = allPages.length;
+        const pagesNeeded = Math.ceil(totalPages / 4) * 4;
+        const blankPagesNeeded = pagesNeeded - totalPages;
+        
+        console.log(`Pages needed for booklet: ${pagesNeeded}, blank pages to add: ${blankPagesNeeded}`);
+        
+        // Thêm trang trống nếu cần
+        const pageSize = allPages[0] ? { 
+            width: allPages[0].getWidth(), 
+            height: allPages[0].getHeight() 
+        } : { width: 595, height: 842 }; // A4 default
+        
+        for (let i = 0; i < blankPagesNeeded; i++) {
+            const blankPage = bookletPdf.addPage([pageSize.width, pageSize.height]);
+            allPages.push(blankPage);
+        }
+        
+        // Tạo dàn trang sổ (booklet imposition)
+        // Sổ được tạo theo thứ tự: [n, 1], [2, n-1], [3, n-2], ...
+        const sheets = [];
+        const numSheets = allPages.length / 4;
+        
+        for (let sheet = 0; sheet < numSheets; sheet++) {
+            // Mặt trước của tờ giấy: [trang cuối, trang đầu]
+            const frontLeft = allPages.length - 1 - (sheet * 2);  // Trang cuối
+            const frontRight = sheet * 2;                         // Trang đầu
+            
+            // Mặt sau của tờ giấy: [trang đầu+1, trang cuối-1]  
+            const backLeft = sheet * 2 + 1;                       // Trang đầu + 1
+            const backRight = allPages.length - 2 - (sheet * 2);  // Trang cuối - 1
+            
+            sheets.push({
+                front: [frontLeft, frontRight],
+                back: [backLeft, backRight]
+            });
+        }
+        
+        console.log('Sheet arrangement:', sheets);
+        
+        // Tạo các trang 2-up (2 trang trên 1 mặt giấy)
+        for (const sheet of sheets) {
+            // Tạo mặt trước
+            const frontSheet = bookletPdf.addPage([pageSize.width * 2, pageSize.height]);
+            
+            // Trang bên trái (trang cuối)
+            if (sheet.front[0] >= 0 && allPages[sheet.front[0]]) {
+                const leftPage = allPages[sheet.front[0]];
+                frontSheet.drawPage(leftPage, {
+                    x: 0,
+                    y: 0,
+                    width: pageSize.width,
+                    height: pageSize.height
+                });
+            }
+            
+            // Trang bên phải (trang đầu)
+            if (sheet.front[1] < allPages.length && allPages[sheet.front[1]]) {
+                const rightPage = allPages[sheet.front[1]];
+                frontSheet.drawPage(rightPage, {
+                    x: pageSize.width,
+                    y: 0,
+                    width: pageSize.width,
+                    height: pageSize.height
+                });
+            }
+            
+            // Tạo mặt sau
+            const backSheet = bookletPdf.addPage([pageSize.width * 2, pageSize.height]);
+            
+            // Trang bên trái (trang đầu + 1)
+            if (sheet.back[0] < allPages.length && allPages[sheet.back[0]]) {
+                const leftPage = allPages[sheet.back[0]];
+                backSheet.drawPage(leftPage, {
+                    x: 0,
+                    y: 0,
+                    width: pageSize.width,
+                    height: pageSize.height
+                });
+            }
+            
+            // Trang bên phải (trang cuối - 1)
+            if (sheet.back[1] >= 0 && allPages[sheet.back[1]]) {
+                const rightPage = allPages[sheet.back[1]];
+                backSheet.drawPage(rightPage, {
+                    x: pageSize.width,
+                    y: 0,
+                    width: pageSize.width,
+                    height: pageSize.height
+                });
+            }
+        }
+        
+        console.log('Saving booklet PDF...');
+        const bookletPdfBytes = await bookletPdf.save();
+        downloadFile(bookletPdfBytes, fileName + '.pdf');
+        
+        alert(`Tạo sổ thành công!\n\nHướng dẫn in:\n1. In 2 mặt (duplex)\n2. Lật theo cạnh dài\n3. Cắt đôi và xếp thành sổ\n\nTổng số tờ giấy: ${numSheets}`);
+        
+    } catch (error) {
+        console.error('Booklet creation error:', error);
+        alert('Lỗi khi tạo sổ: ' + error.message);
+    } finally {
+        bookletBtn.disabled = false;
+        bookletBtn.textContent = 'Gộp Thành Sổ';
+    }
 }
 
 // Tách file
