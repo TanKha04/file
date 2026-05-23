@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Học từ vựng tiếng Anh siêu tốc bằng phương pháp Liên tưởng âm thanh (Mnemonic) và Lặp lại ngắt quãng (Spaced Repetition System - SRS). Giao diện tối ưu, hiện đại.">
+    <title>Học Siêu Nhanh - Học Từ Vựng Siêu Tốc (Mnemonic & SRS)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Main Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Floating Background Blobs for Visual Excellence -->
+    <div class="blob blob-purple"></div>
+    <div class="blob blob-cyan"></div>
+    <div class="blob blob-pink"></div>
+
+    <!-- Gatekeeper Login Screen (Covers entire viewport until logged in) -->
+    <div id="login-screen" class="login-screen-overlay">
+        <div class="login-box glass-card">
+            <div class="login-brand text-center" style="text-align: center;">
+                <img src="logo.png" alt="Logo" class="login-logo mb-3">
+                <h1 class="login-title text-gradient">HỌC SIÊU NHANH</h1>
+                <p class="login-subtitle">Học từ vựng tiếng Anh theo phương pháp Spaced Repetition (Lặp lại ngắt quãng) siêu trí nhớ</p>
+            </div>
+            
+            <div class="login-form-container mt-4" style="margin-top: 24px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                    <label for="login-username" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 6px; display: block; font-weight: 500;">CHỌN TÊN CỦA BẠN</label>
+                    <div class="input-wrapper" style="position: relative; display: flex; align-items: center;">
+                        <i class="fa-solid fa-user-astronaut text-gradient" style="position: absolute; left: 16px; font-size: 1.1rem; pointer-events: none;"></i>
+                        <select id="login-username" style="width: 100%; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; color: #fff; padding: 14px 14px 14px 44px; font-size: 0.95rem; font-weight: 600; outline: none; cursor: pointer; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.3s ease;">
+                            <option value="buithitruclinh" style="background: #12101a; color: #fff;">Bùi Thị Trúc Linh</option>
+                            <option value="tramtankha" style="background: #12101a; color: #fff;">Trầm Tấn Khá</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; pointer-events: none; color: var(--color-text-secondary); font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 6px; display: block; font-weight: 500;">MẬT KHẨU TRUY CẬP</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock" style="color: var(--purple);"></i>
+                        <input type="password" id="login-password" placeholder="Nhập mật khẩu truy cập của bạn" required autocomplete="current-password">
+                    </div>
+                </div>
+
+                <!-- Global feedback alert for Login Screen -->
+                <div id="login-screen-feedback" class="ai-status-alert glass-card hide" style="padding: 12px; display: flex; align-items: center; gap: 8px; border-radius: 12px; margin-top: 4px;">
+                    <i class="fa-solid fa-circle-exclamation text-red" id="login-feedback-icon"></i>
+                    <span id="login-feedback-text" style="font-size: 0.85rem; font-weight: 500;">Mật khẩu hoặc tài khoản sai!</span>
+                </div>
+
+                <div class="auth-buttons-group" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-gradient w-full" id="btn-login-screen-submit" style="padding: 12px 16px; font-size: 0.95rem; font-weight: 600;"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập vào Trang chủ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-card">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <img src="logo.png" alt="Học Siêu Nhanh Logo" class="logo-img">
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">HỌC SIÊU NHANH</span>
+                    <span class="logo-subtitle">Mnemonic & SRS</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-view="dashboard" id="btn-nav-dashboard">
+                    <i class="fa-solid fa-chart-pie"></i> Trang Chủ
+                </button>
+                <button class="nav-item" data-view="learn" id="btn-nav-learn">
+                    <i class="fa-solid fa-graduation-cap"></i> Học Từ Mới
+                </button>
+                <button class="nav-item position-relative" data-view="review" id="btn-nav-review">
+                    <i class="fa-solid fa-rotate-left"></i> Ôn Tập SRS
+                    <span class="badge review-badge" id="review-badge">0</span>
+                </button>
+                <button class="nav-item" data-view="writing" id="btn-nav-writing">
+                    <i class="fa-solid fa-keyboard"></i> Ghép Chữ Luyện Viết
+                </button>
+                <button class="nav-item" data-view="library" id="btn-nav-library">
+                    <i class="fa-solid fa-book-bookmark"></i> Thư Viện Từ
+                </button>
+                <button class="nav-item" data-view="chat" id="btn-nav-chat">
+                    <i class="fa-solid fa-comments"></i> Nhắn Tin
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-gradient w-full" id="btn-sync" style="margin-bottom: 8px;">
+                    <i class="fa-solid fa-cloud"></i> <span id="sync-status-text">Đồng bộ dữ liệu</span>
+                </button>
+                <button class="btn btn-secondary w-full" id="btn-db-setup">
+                    <i class="fa-solid fa-database"></i> Database Setup
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top bar -->
+            <header class="topbar glass-card">
+                <div class="welcome-text">
+                    <h2 id="topbar-title">Chào mừng trở lại! 👋</h2>
+                    <p id="topbar-subtitle">Hôm nay là một ngày tuyệt vời để ghi nhớ từ mới.</p>
+                </div>
+                
+                <div class="action-bar">
+                    <!-- Progress summary pill -->
+                    <div class="progress-pill">
+                        <i class="fa-solid fa-fire text-orange"></i>
+                        <span id="streak-counter">0 ngày học tập</span>
+                    </div>
+
+                    <!-- AI Config button -->
+                    <button class="btn btn-gradient btn-sm" id="btn-ai-config">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI Mnemonic
+                    </button>
+                </div>
+            </header>
+
+            <!-- ================= VIEW 1: DASHBOARD ================= -->
+            <section id="view-dashboard" class="app-view active">
+                <h1 class="sr-only">Bảng điều khiển học tập</h1>
+                
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon bg-purple-soft">
+                            <i class="fa-solid fa-layer-group text-purple"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Tổng Số Từ</span>
+                            <h3 class="stat-value" id="stat-total">0</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon bg-cyan-soft">
+                            <i class="fa-solid fa-book-open-reader text-cyan"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Chưa Học</span>
+                            <h3 class="stat-value" id="stat-new">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-card warning">
+                        <div class="stat-icon bg-yellow-soft">
+                            <i class="fa-solid fa-clock-rotate-left text-yellow"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Đến Hạn Ôn</span>
+                            <h3 class="stat-value" id="stat-due">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="stat-card glass-card success">
+                        <div class="stat-icon bg-green-soft">
+                            <i class="fa-solid fa-circle-check text-green"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Đã Thuộc Sâu</span>
+                            <h3 class="stat-value" id="stat-mastered">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Goal Progress -->
+                <div class="goal-container glass-card">
+                    <div class="goal-header">
+                        <h4>Mục tiêu hôm nay: Ôn tập hết từ đến hạn và học 5 từ mới</h4>
+                        <span class="goal-percentage" id="goal-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="goal-progress" style="width: 0%;"></div>
+                    </div>
+                    <div class="goal-footer">
+                        <span id="goal-desc">Bạn chưa hoàn thành mục tiêu hôm nay. Bắt đầu ngay nhé!</span>
+                    </div>
+                </div>
+
+                <!-- Motivational Quote Banner -->
+                <div class="motivation-banner glass-card" id="motivation-banner">
+                    <div class="motivation-icon">
+                        <i class="fa-solid fa-quote-left"></i>
+                    </div>
+                    <div class="motivation-content">
+                        <p class="motivation-quote" id="motivation-quote">"The limits of my language mean the limits of my world."</p>
+                        <span class="motivation-author" id="motivation-author">— Ludwig Wittgenstein</span>
+                    </div>
+                    <button class="motivation-refresh" id="btn-refresh-quote" title="Câu nói khác">
+                        <i class="fa-solid fa-shuffle"></i>
+                    </button>
+                </div>
+
+                <!-- Start Learning / Quick Actions -->
+                <div class="quick-action-area">
+                    <div class="quick-learning glass-card">
+                        <div class="action-info">
+                            <h3>⚡ Ôn tập thần tốc ngay</h3>
+                            <p>Kiểm tra trí nhớ và đẩy lùi sự lãng quên bằng thuật toán lặp lại ngắt quãng SRS thông minh.</p>
+                        </div>
+                        <button class="btn btn-gradient btn-lg" id="btn-quick-review">
+                            <i class="fa-solid fa-play"></i> Bắt đầu ôn tập (<span id="quick-review-count">0</span> từ)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Learn by Topic Grid -->
+                <h3 class="section-title">Học Theo Chủ Đề (Mnemonic Mode)</h3>
+                <div class="topics-grid">
+                    <div class="topic-card glass-card active" data-topic="all">
+                        <div class="topic-icon bg-gradient-all">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <h4>Tất Cả Chủ Đề</h4>
+                        <p><span id="topic-count-all">0</span> từ vựng</p>
+                    </div>
+
+                    <div class="topic-card glass-card" data-topic="work">
+                        <div class="topic-icon bg-gradient-work">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                        <h4>Công Việc & Công Sở</h4>
+                        <p><span id="topic-count-work">0</span> từ vựng</p>
+                    </div>
+
+                    <div class="topic-card glass-card" data-topic="travel">
+                        <div class="topic-icon bg-gradient-travel">
+                            <i class="fa-solid fa-plane"></i>
+                        </div>
+                        <h4>Du Lịch & Đời Sống</h4>
+                        <p><span id="topic-count-travel">0</span> từ vựng</p>
+                    </div>
+
+                    <div class="topic-card glass-card" data-topic="education">
+                        <div class="topic-icon bg-gradient-edu">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <h4>Học Tập & Giáo Dục</h4>
+                        <p><span id="topic-count-education">0</span> từ vựng</p>
+                    </div>
+
+                    <div class="topic-card glass-card" data-topic="emotions">
+                        <div class="topic-icon bg-gradient-emotions">
+                            <i class="fa-solid fa-face-smile-wink"></i>
+                        </div>
+                        <h4>Cảm Xúc & Tính Cách</h4>
+                        <p><span id="topic-count-emotions">0</span> từ vựng</p>
+                    </div>
+
+                    <div class="topic-card glass-card" data-topic="technology">
+                        <div class="topic-icon bg-gradient-tech">
+                            <i class="fa-solid fa-laptop-code"></i>
+                        </div>
+                        <h4>Công Nghệ & Xã Hội</h4>
+                        <p><span id="topic-count-technology">0</span> từ vựng</p>
+                    </div>
+
+                    <div class="topic-card glass-card" data-topic="food">
+                        <div class="topic-icon bg-gradient-food">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <h4>Đồ Ăn & Sức Khỏe</h4>
+                        <p><span id="topic-count-food">0</span> từ vựng</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 2: LEARNING UI ================= -->
+            <section id="view-learn" class="app-view">
+                <div class="view-header">
+                    <button class="btn-back" id="btn-learn-back">
+                        <i class="fa-solid fa-chevron-left"></i> Quay lại Dashboard
+                    </button>
+                    <div class="learning-info">
+                        Chủ đề: <span class="badge" id="learn-topic-badge">Tất cả</span>
+                    </div>
+                </div>
+
+                <div class="flashcard-layout">
+                    <!-- Progress inside study session -->
+                    <div class="session-progress-text">
+                        Thẻ số <span id="learn-current-index">1</span> / <span id="learn-total-count">0</span>
+                    </div>
+                    <div class="session-progress-bar-container">
+                        <div class="session-progress-bar" id="learn-progress-bar" style="width: 0%;"></div>
+                    </div>
+
+                    <!-- 3D Flip Card Container -->
+                    <div class="flashcard-container">
+                        <div class="flashcard" id="learn-card">
+                            <!-- Card Front -->
+                            <div class="flashcard-front glass-card">
+                                <span class="card-indicator front">MẶT TRƯỚC (HỎI)</span>
+                                
+                                <div class="word-group">
+                                    <h2 class="card-word" id="learn-word">Accuse</h2>
+                                    <p class="card-ipa" id="learn-ipa">/ə'kjuːz/</p>
+                                    <p class="card-pos" id="learn-pos">(v)</p>
+                                </div>
+
+                                <div class="card-actions">
+                                    <button class="btn-voice" id="btn-learn-voice" title="Nghe phát âm">
+                                        <i class="fa-solid fa-volume-high"></i>
+                                    </button>
+                                </div>
+
+                                <p class="flip-hint"><i class="fa-solid fa-rotate"></i> Click vào thẻ để xem nghĩa & mẹo liên tưởng</p>
+                            </div>
+
+                            <!-- Card Back -->
+                            <div class="flashcard-back glass-card">
+                                <span class="card-indicator back">MẶT SAU (GHI NHỚ SÂU)</span>
+                                
+                                <div class="card-image-container">
+                                    <img src="" id="learn-image" alt="Mnemonic Illustration" onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80'">
+                                    <div class="image-overlay"></div>
+                                </div>
+
+                                <div class="card-back-details">
+                                    <div class="detail-section">
+                                        <span class="detail-label">Nghĩa Tiếng Việt</span>
+                                        <h3 class="card-meaning" id="learn-meaning">Buộc tội, đổ lỗi</h3>
+                                    </div>
+
+                                    <div class="detail-section highlight">
+                                        <span class="detail-label"><i class="fa-solid fa-lightbulb text-yellow"></i> Mẹo Liên Tưởng Âm Thanh</span>
+                                        <p class="card-cue" id="learn-cue">Đọc lướt gần giống: <strong>ai cứu</strong></p>
+                                    </div>
+
+                                    <div class="detail-section">
+                                        <span class="detail-label"><i class="fa-solid fa-book-open text-purple"></i> Câu Chuyện Siêu Thực</span>
+                                        <p class="card-story" id="learn-story">Tôi xin mọi người, <strong>ai</strong> đó hãy <strong>cứu</strong> lấy con tôi, con tôi bị <strong>buộc tội</strong> oan!</p>
+                                    </div>
+
+                                    <div class="detail-section" id="learn-example-section">
+                                        <span class="detail-label"><i class="fa-solid fa-quote-left text-cyan"></i> Ví dụ</span>
+                                        <p class="card-example" id="learn-example">He was accused of stealing money.</p>
+                                    </div>
+                                </div>
+
+                                <p class="flip-hint"><i class="fa-solid fa-rotate"></i> Click vào thẻ để lật lại mặt trước</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SRS Grading for Learn Mode (displayed after card is flipped) -->
+                    <div class="learn-srs-container hide" id="learn-srs-area">
+                        <p class="srs-label">Bạn cảm thấy nhớ từ này ở mức nào?</p>
+                        <div class="srs-buttons-grid">
+                            <button class="btn btn-srs btn-srs-forgot" data-learn-grade="0">
+                                <span class="btn-srs-title">❌ Quên</span>
+                                <span class="btn-srs-desc">Lặp lại ngay</span>
+                            </button>
+                            <button class="btn btn-srs btn-srs-hard" data-learn-grade="1">
+                                <span class="btn-srs-title">⚠️ Khó</span>
+                                <span class="btn-srs-desc">Ôn ngày mai</span>
+                            </button>
+                            <button class="btn btn-srs btn-srs-good" data-learn-grade="2">
+                                <span class="btn-srs-title">👍 Tốt</span>
+                                <span class="btn-srs-desc">Ôn sau 3 ngày</span>
+                            </button>
+                            <button class="btn btn-srs btn-srs-easy" data-learn-grade="3">
+                                <span class="btn-srs-title">🔥 Dễ</span>
+                                <span class="btn-srs-desc">Ôn sau 7 ngày</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bottom actions -->
+                    <div class="learn-actions">
+                        <button class="btn btn-secondary btn-lg" id="btn-learn-prev" disabled>
+                            <i class="fa-solid fa-arrow-left"></i> Từ Trước
+                        </button>
+                        
+                        <button class="btn btn-gradient btn-lg" id="btn-start-srs">
+                            <i class="fa-solid fa-fire"></i> Đã hiểu, Tiếp tục
+                        </button>
+
+                        <button class="btn btn-secondary btn-lg" id="btn-learn-next">
+                            Từ Tiếp <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="learn-completed-state" class="empty-state glass-card hide" style="padding: 40px 20px; text-align: center;">
+                    <i class="fa-solid fa-circle-check text-gradient" style="font-size: 4rem; display: block; margin-bottom: 1.5rem; background: linear-gradient(135deg, #10b981, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                    <h3>Đã đạt giới hạn học từ mới hôm nay!</h3>
+                    <p style="margin-bottom: 20px; color: var(--color-text-secondary); max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.5;">Bạn đã học đủ 5 từ mới cho ngày hôm nay. Hãy tập trung ôn tập lại các từ cũ hoặc luyện viết để ghi nhớ sâu sắc nhất nhé!</p>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button class="btn btn-gradient" id="btn-learn-go-review">Đi Ôn Tập Ngay</button>
+                        <button class="btn btn-secondary" id="btn-learn-go-home">Về Trang Chủ</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 3: REVIEW UI (SRS) ================= -->
+            <section id="view-review" class="app-view">
+                <div class="view-header">
+                    <button class="btn-back" id="btn-review-back">
+                        <i class="fa-solid fa-chevron-left"></i> Quay lại Dashboard
+                    </button>
+                    <div class="learning-info position-relative">
+                        <i class="fa-solid fa-clock-rotate-left text-yellow"></i> Chế độ Ôn tập SRS (Spaced Repetition)
+                    </div>
+                </div>
+
+                <div class="flashcard-layout">
+                    <div class="session-progress-text">
+                        Còn <span id="review-remaining-count">0</span> từ cần ôn tập trong lượt này
+                    </div>
+                    
+                    <div id="review-empty-state" class="empty-state glass-card hide">
+                        <i class="fa-solid fa-face-smile-beam text-gradient" style="font-size: 4rem; display: block; margin-bottom: 1.5rem;"></i>
+                        <h3>Tuyệt vời! Không còn từ nào cần ôn tập!</h3>
+                        <p>Bạn đã hoàn thành toàn bộ lịch ôn tập hôm nay. Hãy học thêm từ mới hoặc quay lại vào ngày mai nhé!</p>
+                        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 15px;">
+                            <button class="btn btn-gradient" id="btn-review-all-learned"><i class="fa-solid fa-rotate"></i> Ôn tập tự do (Các từ đã học)</button>
+                            <button class="btn btn-secondary" id="btn-review-go-home">Quay lại Trang Chủ</button>
+                        </div>
+                    </div>
+
+                    <div id="review-active-area">
+                        <!-- 3D Flip Card Container -->
+                        <div class="flashcard-container">
+                            <div class="flashcard" id="review-card">
+                                <!-- Card Front -->
+                                <div class="flashcard-front glass-card">
+                                    <span class="card-indicator front">MẶT TRƯỚC (ÉP TRUY XUẤT)</span>
+                                    
+                                    <!-- Recall challenge dynamic container -->
+                                    <div class="recall-container w-full" id="review-front-content">
+                                        <!-- Will show EITHER the English word OR the story illustration image -->
+                                    </div>
+
+                                    <div class="card-actions">
+                                        <button class="btn-voice" id="btn-review-voice" title="Nghe phát âm">
+                                            <i class="fa-solid fa-volume-high"></i>
+                                        </button>
+                                    </div>
+
+                                    <p class="flip-hint"><i class="fa-solid fa-rotate"></i> Click vào thẻ hoặc bấm "Lật mặt sau" để xem đáp án</p>
+                                </div>
+
+                                <!-- Card Back -->
+                                <div class="flashcard-back glass-card">
+                                    <span class="card-indicator back">MẶT SAU (ĐÁP ÁN)</span>
+                                    
+                                    <div class="card-image-container">
+                                        <img src="" id="review-image" alt="Mnemonic Illustration" onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80'">
+                                        <div class="image-overlay"></div>
+                                    </div>
+
+                                    <div class="card-back-details">
+                                        <div class="detail-section">
+                                            <span class="detail-label">Từ Tiếng Anh</span>
+                                            <h2 class="card-word" id="review-word">Accuse</h2>
+                                            <p class="card-ipa" id="review-ipa">/ə'kjuːz/</p>
+                                        </div>
+
+                                        <div class="detail-section">
+                                            <span class="detail-label">Nghĩa Tiếng Việt</span>
+                                            <h3 class="card-meaning" id="review-meaning">Buộc tội, đổ lỗi</h3>
+                                        </div>
+
+                                        <div class="detail-section highlight">
+                                            <span class="detail-label"><i class="fa-solid fa-lightbulb text-yellow"></i> Mẹo Liên Tưởng</span>
+                                            <p class="card-cue" id="review-cue">Đọc lướt gần giống: <strong>ai cứu</strong></p>
+                                        </div>
+
+                                        <div class="detail-section">
+                                            <span class="detail-label"><i class="fa-solid fa-book-open text-purple"></i> Câu Chuyện Siêu Thực</span>
+                                            <p class="card-story" id="review-story">Tôi xin mọi người, <strong>ai</strong> đó hãy <strong>cứu</strong> lấy con tôi, con tôi bị <strong>buộc tội</strong> oan!</p>
+                                        </div>
+                                    </div>
+
+                                    <p class="flip-hint"><i class="fa-solid fa-rotate"></i> Click vào thẻ để xem lại mặt trước</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reveal trigger button (displayed when front is shown) -->
+                        <div class="reveal-action-container" id="reveal-trigger-area">
+                            <button class="btn btn-gradient btn-lg w-full" id="btn-reveal-card">
+                                <i class="fa-solid fa-eye"></i> Lật mặt sau & Kiểm tra đáp án
+                            </button>
+                        </div>
+
+                        <!-- SRS Grading options (displayed when card is flipped to back) -->
+                        <div class="srs-actions-container hide" id="srs-options-area">
+                            <p class="srs-label">Bạn có nhớ từ này không? Đánh giá mức độ nhớ của bạn:</p>
+                            
+                            <div class="srs-buttons-grid">
+                                <button class="btn btn-srs btn-srs-forgot" data-grade="0">
+                                    <span class="btn-srs-title">❌ Quên</span>
+                                    <span class="btn-srs-desc">Lặp lại ngay</span>
+                                </button>
+                                
+                                <button class="btn btn-srs btn-srs-hard" data-grade="1">
+                                    <span class="btn-srs-title">⚠️ Khó</span>
+                                    <span class="btn-srs-desc">Ôn ngày mai</span>
+                                </button>
+                                
+                                <button class="btn btn-srs btn-srs-good" data-grade="2">
+                                    <span class="btn-srs-title">👍 Tốt</span>
+                                    <span class="btn-srs-desc">Ôn sau 3 ngày</span>
+                                </button>
+                                
+                                <button class="btn btn-srs btn-srs-easy" data-grade="3">
+                                    <span class="btn-srs-title">🔥 Dễ</span>
+                                    <span class="btn-srs-desc">Ôn sau 7 ngày</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 4: LIBRARY & CRUD ================= -->
+            <section id="view-library" class="app-view">
+                <div class="library-header glass-card">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="library-search" placeholder="Tìm kiếm từ tiếng Anh, nghĩa tiếng Việt, mẹo liên tưởng...">
+                    </div>
+                    
+                    <div class="filter-box" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <select id="library-filter-status" class="custom-select" style="min-width: 130px;">
+                            <option value="all">Tất cả từ</option>
+                            <option value="learned">🎉 Đã học</option>
+                            <option value="unlearned">⏳ Chưa học</option>
+                        </select>
+
+                        <select id="library-filter-topic" class="custom-select">
+                            <option value="all">Tất cả chủ đề</option>
+                            <option value="work">💼 Công Việc</option>
+                            <option value="travel">✈️ Du Lịch</option>
+                            <option value="education">🎓 Giáo Dục</option>
+                            <option value="emotions">🧠 Cảm Xúc</option>
+                            <option value="technology">💻 Công Nghệ</option>
+                            <option value="food">🍎 Sức Khỏe</option>
+                        </select>
+                        
+                        <button class="btn btn-gradient" id="btn-add-vocab">
+                            <i class="fa-solid fa-plus"></i> Thêm từ mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Words List Table / Grid -->
+                <div class="library-table-container glass-card">
+                    <table class="library-table">
+                        <thead>
+                            <tr>
+                                <th>Từ</th>
+                                <th>Phiên Âm / Loại</th>
+                                <th>Nghĩa Tiếng Việt</th>
+                                <th>Mẹo & Câu Chuyện Ghi Nhớ</th>
+                                <th>Chủ Đề</th>
+                                <th>Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="library-tbody">
+                            <!-- Dynamic rows will go here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 5: WRITING CHALLENGE (SPELLING) ================= -->
+            <section id="view-writing" class="app-view">
+                <div class="view-header">
+                    <button class="btn-back" id="btn-writing-back">
+                        <i class="fa-solid fa-chevron-left"></i> Quay lại Dashboard
+                    </button>
+                    <div class="learning-info">
+                        Chủ đề: <span class="badge" id="writing-topic-badge">Tất cả</span>
+                    </div>
+                </div>
+
+                <div class="flashcard-layout">
+                    <div class="session-progress-text">
+                        Từ số <span id="writing-current-index">0</span> / <span id="writing-total-count">0</span>
+                    </div>
+                    <div class="session-progress-bar-container">
+                        <div class="session-progress-bar" id="writing-progress-bar" style="width: 0%;"></div>
+                    </div>
+
+                    <!-- Writing Game Dashboard Card -->
+                    <div class="flashcard-container" style="height: auto; min-height: 480px;">
+                        <div class="flashcard-front glass-card" style="position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 15px; cursor: default; transform: none; backface-visibility: visible;">
+                            <span class="card-indicator front" style="width: auto;"><i class="fa-solid fa-keyboard"></i> LUYỆN VIẾT & SẮP XẾP CHỮ</span>
+
+                            <!-- Clue Section -->
+                            <div class="card-image-container" style="height: 140px;">
+                                <img src="" id="writing-image" alt="Mnemonic Illustration" onerror="this.src='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80'">
+                                <div class="image-overlay"></div>
+                            </div>
+
+                            <div class="card-back-details" style="overflow: visible; width: 100%;">
+                                <div class="detail-section">
+                                    <span class="detail-label">Nghĩa Tiếng Việt</span>
+                                    <h3 class="card-meaning" id="writing-meaning" style="font-size: 1.2rem;">...</h3>
+                                </div>
+                                <div class="detail-section highlight" style="padding: 6px 10px; margin-top: 5px;">
+                                    <span class="detail-label"><i class="fa-solid fa-lightbulb text-yellow"></i> Mẹo Âm Bồi</span>
+                                    <p class="card-cue" id="writing-cue" style="font-size: 0.9rem;">...</p>
+                                </div>
+                            </div>
+
+                            <!-- Word Assembly Area -->
+                            <div class="writing-assembly-area" style="width: 100%; display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 10px;">
+                                <!-- Empty Slots for Target Answer -->
+                                <div id="writing-answer-slots" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 45px; width: 100%; padding: 5px; border-bottom: 2px dashed var(--color-border-glass);">
+                                    <!-- Dynamic answer placeholders -->
+                                </div>
+
+                                <!-- Scrambled Letter Bubbles -->
+                                <div id="writing-letters-pool" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; margin-top: 5px;">
+                                    <!-- Dynamic letter buttons -->
+                                </div>
+                            </div>
+
+                            <!-- Success/Error Feedback Banner -->
+                            <div id="writing-feedback" class="hide" style="width: 100%; padding: 8px 12px; border-radius: 12px; text-align: center; font-weight: 600; font-size: 0.9rem; margin-top: 10px;">
+                                <!-- Feedback text -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom control buttons -->
+                    <div class="learn-actions">
+                        <button class="btn btn-secondary btn-lg" id="btn-writing-reset">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Làm lại
+                        </button>
+                        
+                        <button class="btn btn-gradient btn-lg hide" id="btn-writing-next">
+                            Từ Tiếp Theo <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+
+                        <button class="btn btn-secondary btn-lg" id="btn-writing-skip">
+                            Bỏ qua / Đáp án <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 6: CHAT / DIRECT MESSAGING ================= -->
+            <section id="view-chat" class="app-view">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-comments text-gradient"></i> Nhắn Tin Trực Tuyến</h2>
+                    <p class="view-description">Trò chuyện trực tiếp và chia sẻ kinh nghiệm học tập</p>
+                </div>
+
+                <div class="chat-container glass-card" style="display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 220px); min-height: 480px; border-radius: 20px; overflow: hidden; padding: 0;">
+                    <!-- Left Bar: Active Chat Partner -->
+                    <div class="chat-sidebar" style="border-right: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0,0,0,0.15); display: flex; flex-direction: column; padding: 16px;">
+                        <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted); font-weight: 600; margin-bottom: 12px;">Đang liên lạc</span>
+                        
+                        <div class="chat-partners-list" id="chat-partners-list" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Active partner row -->
+                            <div class="partner-item active" id="chat-partner-row" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); cursor: pointer;">
+                                <div class="partner-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--pink)); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff;" id="chat-partner-avatar">
+                                    L
+                                </div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-weight: 600; font-size: 0.9rem;" id="chat-partner-name">Bùi Thị Trúc Linh</span>
+                                    <span style="font-size: 0.75rem; color: #10b981;" id="chat-partner-status">● Đang hoạt động</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.4;">
+                                <i class="fa-solid fa-circle-info"></i> Tin nhắn được mã hóa và lưu trữ đồng bộ qua tài khoản cá nhân.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Bar: Chat Area -->
+                    <div class="chat-main-area" style="display: flex; flex-direction: column; height: 100%; background: rgba(0,0,0,0.05);">
+                        <!-- Chat header -->
+                        <div class="chat-area-header" style="padding: 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-weight: 600; font-size: 1rem;" id="chat-header-title">Trò chuyện với Bùi Thị Trúc Linh</span>
+                            </div>
+                            <div id="chat-sync-indicator" style="font-size: 0.8rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Tự động đồng bộ
+                            </div>
+                        </div>
+
+                        <!-- Chat messages screen -->
+                        <div class="chat-messages-box" id="chat-messages-box" style="flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                            <!-- Example messages -->
+                        </div>
+
+                        <!-- Tip alert if SQL table not found -->
+                        <div id="chat-sql-tip" class="ai-status-alert glass-card hide" style="margin: 0 24px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-radius: 10px; font-size: 0.8rem; background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Lưu ý: Để lưu tin nhắn Cloud, vui lòng chạy SQL tạo bảng <code>messages</code> trên Supabase của bạn.</span>
+                        </div>
+
+                        <!-- Chat input bar -->
+                        <div class="chat-input-container" style="padding: 16px 24px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                            <form id="chat-send-form" style="display: flex; gap: 12px; width: 100%;">
+                                <input type="text" id="chat-message-input" placeholder="Nhập nội dung tin nhắn..." style="flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); color: #fff; outline: none; font-size: 0.9rem;" autocomplete="off">
+                                <button type="submit" class="btn btn-gradient" id="btn-chat-send" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                    <span>Gửi</span> <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ================= BACKEND / DATABASE SETUP MODAL ================= -->
+    <div class="modal-overlay hide" id="modal-db">
+        <div class="modal-content glass-card large">
+            <div class="modal-header-container">
+                <h3><i class="fa-solid fa-database text-gradient"></i> Thiết Lập Database & Backend</h3>
+                <button class="btn-close-modal" id="btn-close-db-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body-content">
+                <p>Ứng dụng hiện tại đang hoạt động ngoại tuyến, đồng bộ hóa hoàn toàn với <strong>HTML5 LocalStorage</strong>. Để nâng cấp ứng dụng lên hệ thống mạng dùng cho nhiều thiết bị, bạn hãy thực hiện theo hướng dẫn cài đặt Backend gọn nhẹ dưới đây:</p>
+                
+                <div class="tabs-header">
+                    <button class="tab-btn active" data-tab="tab-supabase">Supabase Setup</button>
+                    <button class="tab-btn" data-tab="tab-firebase">Firebase Setup</button>
+                </div>
+
+                <div class="tab-content active" id="tab-supabase">
+                    <h4>1. Khởi tạo Bảng trong Supabase SQL Editor</h4>
+                    <p>Hãy sao chép và thực thi đoạn mã SQL bên dưới trong bảng điều khiển SQL Editor của Supabase để khởi tạo bảng dữ liệu từ vựng và bảng quản lý SRS:</p>
+                    <pre class="code-block"><code>-- 1. Bảng lưu trữ từ vựng (Vocabulary)
+CREATE TABLE vocabulary (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    english_word VARCHAR(255) NOT NULL,
+    ipa VARCHAR(255),
+    part_of_speech VARCHAR(50),
+    vietnamese_meaning VARCHAR(255) NOT NULL,
+    phonetic_cue VARCHAR(255) NOT NULL,
+    surreal_story TEXT NOT NULL,
+    image_url TEXT NOT NULL,
+    audio_url TEXT,
+    topic VARCHAR(50) DEFAULT 'work',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Bảng theo dõi tiến trình ôn tập SRS
+CREATE TABLE srs_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vocab_id UUID REFERENCES vocabulary(id) ON DELETE CASCADE,
+    current_level INT DEFAULT 0,
+    interval INT DEFAULT 0,
+    ease_factor DECIMAL DEFAULT 2.5,
+    next_review_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    last_reviewed TIMESTAMP WITH TIME ZONE,
+    UNIQUE(vocab_id)
+);</code></pre>
+                    
+                    <h4 class="mt-4">2. Tích hợp Supabase Client vào Frontend</h4>
+                    <p>Thêm thư viện CDN Supabase vào thẻ <code>&lt;head&gt;</code> của trang web và kết nối bằng đoạn code JS:</p>
+                    <pre class="code-block"><code>&lt;script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const supabase = supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
+
+  // Hàm tải dữ liệu từ Supabase thay thế LocalStorage
+  async function loadVocabularyFromDB() {
+    const { data, error } = await supabase.from('vocabulary').select('*');
+    if (error) console.error("Lỗi:", error);
+    return data;
+  }
+&lt;/script&gt;</code></pre>
+                </div>
+
+                <div class="tab-content" id="tab-firebase">
+                    <h4>1. Cấu trúc Firestore Database</h4>
+                    <p>Khởi tạo 2 Collection độc lập trong Cloud Firestore với cấu trúc phân cấp:</p>
+                    <pre class="code-block"><code>// Collection "vocabulary"
+document_id: "auto-generated" {
+  english_word: "Accuse",
+  ipa: "/ə'kjuːz/",
+  part_of_speech: "v",
+  vietnamese_meaning: "Buộc tội",
+  phonetic_cue: "ai cứu",
+  surreal_story: "Tôi xin mọi người, ai cứu con tôi bị buộc tội oan!",
+  image_url: "https://...",
+  topic: "work"
+}
+
+// Collection "srs_progress"
+document_id: "auto-generated" {
+  vocab_id: "reference_to_vocabulary_doc",
+  current_level: 0,
+  interval: 0,
+  ease_factor: 2.5,
+  next_review_date: Timestamp,
+  last_reviewed: Timestamp
+}</code></pre>
+
+                    <h4 class="mt-4">2. Tích hợp SDK Firebase vào Frontend</h4>
+                    <pre class="code-block"><code>&lt;script type="module"&gt;
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    projectId: "YOUR_PROJECT_ID",
+    databaseURL: "YOUR_DATABASE_URL"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+&lt;/script&gt;</code></pre>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-gradient w-full" id="btn-close-db-modal-footer">Đã hiểu! Đóng hướng dẫn</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= AI CONFIG MODAL ================= -->
+    <div class="modal-overlay hide" id="modal-ai">
+        <div class="modal-content glass-card">
+            <div class="modal-header-container">
+                <h3><i class="fa-solid fa-wand-magic-sparkles text-gradient"></i> Cấu Hình AI Gợi Ý Mnemonic</h3>
+                <button class="btn-close-modal" id="btn-close-ai-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body-content">
+                <p>Tự động hóa hoàn toàn việc sáng tạo câu chuyện liên tưởng và tìm hình ảnh minh họa bằng mô hình <strong>Google Gemini Pro AI</strong> thế hệ mới:</p>
+                
+                <div class="form-group mt-4">
+                    <label for="gemini-key">Gemini API Key của bạn</label>
+                    <input type="password" id="gemini-key" placeholder="Dán Gemini API Key của bạn tại đây...">
+                    <small>Bạn có thể lấy Gemini API Key miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.</small>
+                </div>
+
+                <div class="ai-status-alert glass-card">
+                    <i class="fa-solid fa-circle-info text-cyan"></i>
+                    <span>Nếu không có API Key, hệ thống sẽ kích hoạt <strong>Bộ sinh gợi ý ngoại tuyến thông minh (Offline Template Engine)</strong> được lập trình sẵn để nạp câu chuyện liên tưởng và ảnh Unsplash tự động cho bất kỳ từ nào bạn nhập!</span>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-clear-ai-key">Xóa Key</button>
+                <button class="btn btn-gradient" id="btn-save-ai-config">Lưu Cấu Hình</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ADD / EDIT WORD MODAL (CRUD) ================= -->
+    <div class="modal-overlay hide" id="modal-crud">
+        <div class="modal-content glass-card medium">
+            <div class="modal-header-container">
+                <h3 id="crud-modal-title"><i class="fa-solid fa-file-pen text-gradient"></i> Thêm Từ Vựng Mới</h3>
+                <button class="btn-close-modal" id="btn-close-crud-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body-content">
+                <form id="crud-form">
+                    <input type="hidden" id="crud-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="crud-word">Từ Tiếng Anh *</label>
+                            <input type="text" id="crud-word" placeholder="Ví dụ: Accuse" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="crud-pos">Từ Loại</label>
+                            <select id="crud-pos" class="custom-select">
+                                <option value="(v)">Động từ (v)</option>
+                                <option value="(n)">Danh từ (n)</option>
+                                <option value="(adj)">Tính từ (adj)</option>
+                                <option value="(adv)">Trạng từ (adv)</option>
+                                <option value="(idiom)">Thành ngữ (idiom)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="crud-ipa">Phiên Âm IPA</label>
+                            <input type="text" id="crud-ipa" placeholder="Ví dụ: /ə'kjuːz/">
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="crud-topic">Chủ Đề</label>
+                            <select id="crud-topic" class="custom-select">
+                                <option value="work">💼 Công Việc & Công Sở</option>
+                                <option value="travel">✈️ Du Lịch & Đời Sống</option>
+                                <option value="education">🎓 Học Tập & Giáo Dục</option>
+                                <option value="emotions">🧠 Cảm Xúc & Tính Cách</option>
+                                <option value="technology">💻 Công Nghệ & Xã Hội</option>
+                                <option value="food">🍎 Đồ Ăn & Sức Khỏe</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crud-meaning">Nghĩa Tiếng Việt *</label>
+                        <input type="text" id="crud-meaning" placeholder="Ví dụ: Buộc tội, đổ lỗi" required>
+                    </div>
+
+                    <!-- AI generate assistance button -->
+                    <div class="ai-assist-box">
+                        <button type="button" class="btn btn-secondary w-full" id="btn-ai-assist-generate">
+                            <i class="fa-solid fa-wand-magic-sparkles text-gradient"></i> Tự Động Viết Câu Chuyện & Tìm Ảnh Ghi Nhớ Bằng AI
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crud-cue">Từ Đồng Âm Bồi (Phonetic Cue) *</label>
+                        <input type="text" id="crud-cue" placeholder="Ví dụ: ai cứu (đọc gần giống accuse)" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crud-story">Câu Chuyện Liên Tưởng Siêu Thực (Surreal Story) *</label>
+                        <textarea id="crud-story" rows="3" placeholder="Ví dụ: Chiếc lá HÉO dính đầy MỰC được dán lên chiếc MŨ BẢO HIỂM." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crud-image">Link Ảnh Minh Họa (Image URL)</label>
+                        <input type="url" id="crud-image" placeholder="Dán link ảnh từ Unsplash, Pexels hoặc để trống để tự động tìm">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crud-example">Câu Ví Dụ</label>
+                        <input type="text" id="crud-example" placeholder="Ví dụ: She accused him of stealing money.">
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-close-crud-modal-footer">Hủy</button>
+                <button type="button" class="btn btn-gradient" id="btn-save-crud">Lưu Từ Vựng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hide">
+        <i class="fa-solid fa-circle-check text-green mr-2"></i>
+        <span id="toast-message">Đã cập nhật thành công!</span>
+    </div>
+
+    <!-- Sync Modal -->
+    <div class="modal-overlay hide" id="modal-sync">
+        <div class="modal-content glass-card" style="max-width: 450px;">
+            <div class="modal-header-container">
+                <h3><i class="fa-solid fa-cloud-arrow-up text-gradient"></i> Đồng Bộ Đa Thiết Bị</h3>
+                <button class="btn-close-modal" id="btn-close-sync-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Auth & Sync Tabs -->
+            <div class="modal-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                <button class="modal-tab active" id="tab-auth-account" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; color: #fff; cursor: pointer; font-weight: 600; font-family: 'Outfit'; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="fa-solid fa-user-lock text-purple"></i> Tài Khoản
+                </button>
+                <button class="modal-tab" id="tab-auth-quick" style="flex: 1; padding: 10px; background: transparent; border: 1px solid transparent; border-radius: 10px; color: var(--color-text-secondary); cursor: pointer; font-weight: 600; font-family: 'Outfit'; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="fa-solid fa-bolt text-cyan"></i> Mã Nhanh
+                </button>
+            </div>
+
+            <div class="modal-body-content">
+                <!-- Content Area 1: Personal Account (Supabase Auth) -->
+                <div id="area-auth-account">
+                    <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.4;">
+                        Đăng ký tài khoản bằng <strong>Tên đăng nhập</strong> và Mật khẩu tự chọn (không cần Email) để đồng bộ vĩnh viễn tiến trình học.
+                    </p>
+                    
+                    <div id="account-logged-out-view">
+                        <div class="form-group">
+                            <label for="auth-username" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 6px; display: block;">Tên đăng nhập (viết liền không dấu)</label>
+                            <input type="text" id="auth-username" placeholder="VD: tankha04, hocsinh99..." style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); color: #fff; font-family: 'Inter'; font-size: 0.9rem;" autocomplete="username">
+                        </div>
+                        <div class="form-group" style="margin-top: 14px;">
+                            <label for="auth-password" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 6px; display: block;">Mật khẩu (từ 6 ký tự)</label>
+                            <input type="password" id="auth-password" placeholder="Mật khẩu của bạn" style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); color: #fff; font-family: 'Inter'; font-size: 0.9rem;" autocomplete="current-password">
+                        </div>
+                        <div class="auth-buttons-group" style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+                            <button class="btn btn-gradient w-full" id="btn-auth-login" style="padding: 12px;"><i class="fa-solid fa-right-to-bracket"></i> Đăng nhập</button>
+                            <button class="btn btn-secondary w-full" id="btn-auth-signup" style="padding: 12px;"><i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản</button>
+                        </div>
+                    </div>
+                    
+                    <div id="account-logged-in-view" class="hide">
+                        <div class="profile-card glass-card text-center" style="padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <div class="profile-avatar" style="font-size: 3rem; color: var(--pink); line-height: 1;"><i class="fa-regular fa-circle-user"></i></div>
+                            <h4 id="logged-in-email-text" style="font-weight: 700; color: #fff; font-size: 1.1rem; margin-top: 8px; word-break: break-all;">account@email.com</h4>
+                            <p style="color: var(--green); font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 6px; margin: 0;"><i class="fa-solid fa-circle-check"></i> Đang hoạt động & Đồng bộ tự động</p>
+                            <button class="btn btn-secondary w-full" id="btn-auth-logout" style="margin-top: 16px; padding: 10px; border-color: rgba(239, 68, 68, 0.3); color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+                            <button class="btn btn-secondary w-full" id="btn-auth-reset" style="margin-top: 8px; padding: 10px; border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-weight: 600;"><i class="fa-solid fa-trash-can"></i> Xóa tất cả tiến trình (Reset)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Area 2: Quick Code Sync (Legacy) -->
+                <div id="area-auth-quick" class="hide">
+                    <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.4;">
+                        Đồng bộ nhanh không cần mật khẩu bằng cách sử dụng chung một mã chữ tự chọn trên mọi thiết bị.
+                    </p>
+                    <div class="form-group">
+                        <label for="sync-code-input" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 6px; display: block;">Mã đồng bộ nhanh</label>
+                        <input type="text" id="sync-code-input" placeholder="VD: tankha04, hocsinh2024..." style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); color: #fff; font-family: 'Inter'; font-size: 0.9rem;" maxlength="50">
+                        <small style="font-size: 0.7rem; color: var(--color-text-muted); display: block; margin-top: 4px;">Chọn một mã dễ nhớ. Ai có cùng mã sẽ dùng chung dữ liệu.</small>
+                    </div>
+                    <div class="auth-buttons-group" style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn btn-gradient w-full" id="btn-sync-connect" style="padding: 12px;"><i class="fa-solid fa-cloud-arrow-up"></i> Kết nối & Đồng bộ</button>
+                        <button class="btn btn-secondary w-full" id="btn-sync-disconnect" style="padding: 12px; border-color: rgba(239, 68, 68, 0.3); color: #ef4444;"><i class="fa-solid fa-link-slash"></i> Ngắt kết nối</button>
+                    </div>
+                </div>
+
+                <!-- Global feedback alert inside modal -->
+                <div id="sync-feedback" class="ai-status-alert glass-card hide" style="margin-top: 16px; padding: 12px; display: flex; align-items: center; gap: 8px; border-radius: 10px;">
+                    <i class="fa-solid fa-circle-check text-green" id="sync-feedback-icon"></i>
+                    <span id="sync-feedback-text" style="font-size: 0.85rem; font-weight: 500;">Thao tác thành công!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Floating Bottom Navigation Bar -->
+    <div class="mobile-bottom-nav glass-card">
+        <button class="nav-item active" data-view="dashboard">
+            <i class="fa-solid fa-house"></i>
+            <span>Trang Chủ</span>
+        </button>
+        <button class="nav-item" data-view="learn">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>Học Mới</span>
+        </button>
+        <button class="nav-item position-relative" data-view="review">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>Ôn Tập</span>
+            <span class="badge review-badge" id="review-badge-mobile" style="display: none;">0</span>
+        </button>
+        <button class="nav-item" data-view="writing">
+            <i class="fa-solid fa-keyboard"></i>
+            <span>Ghép Chữ</span>
+        </button>
+        <button class="nav-item" data-view="library">
+            <i class="fa-solid fa-book-bookmark"></i>
+            <span>Thư Viện</span>
+        </button>
+        <button class="nav-item" data-view="chat">
+            <i class="fa-solid fa-comments"></i>
+            <span>Nhắn Tin</span>
+        </button>
+    </div>
+
+    <!-- Scraped Vocabulary Database -->
+    <script src="vocab_data.js"></script>
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
